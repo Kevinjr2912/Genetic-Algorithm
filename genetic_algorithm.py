@@ -1,17 +1,34 @@
 from math import ceil, log
-import numpy as np
 import random
 
 class GeneticAlgorithm: 
-    def __init__(self, func, coordinate_a, coordinate_b, initial_population, max_population, size_individual, probability_cross):
+    def __init__(
+            self, 
+            func, 
+            coordinate_a, 
+            coordinate_b,
+            res_problem, 
+            initial_population, 
+            max_population, 
+            maximization,
+            probability_cross, 
+            individual_mutation, 
+            mut_gen,
+            generations
+        ):
         self.func = func
         self.coordinate_a = coordinate_a
         self.coordinate_b = coordinate_b
+        self.res_problem = res_problem
         self.system_resolution = None
+        self.num_bits = None
         self.initial_population = initial_population
         self.max_population = max_population
-        self.size_individual = size_individual
+        self.maximization = maximization
         self.probability_cross = probability_cross
+        self.individual_mutation = individual_mutation
+        self.mut_gen = mut_gen
+        self.generations = generations
         
     def calculate_points_problem(self, rango: float, res_problem: float) -> int:
         return ceil(rango / res_problem) + 1
@@ -35,6 +52,7 @@ class GeneticAlgorithm:
         system_resolution = self.calculate_resolution_system(range, system_points)
 
         self.system_resolution = system_resolution
+        self.num_bits = num_bits
 
         return [system_resolution, num_bits]
 
@@ -50,7 +68,7 @@ class GeneticAlgorithm:
         for _ in range(self.initial_population):         
             individual = []
 
-            for _ in range(self.size_individual):      
+            for _ in range(self.num_bits):      
                 gene = random.randint(0, 1)
                 individual.append(gene)
 
@@ -73,7 +91,7 @@ class GeneticAlgorithm:
             evaluated_population.append({
                 "bit_string" : individual,
                 "x" : x,
-                "fitness" : fitness
+                "fitness" : round(fitness, 3)
             })
 
         return evaluated_population
@@ -82,19 +100,45 @@ class GeneticAlgorithm:
         couples = []
 
         for i in range(len(population)):
-            for j in range(len(population)):
-                 if i != j:
-                     p = random.random()
+            for j in range(i + 1, len(population)):
+                p = random.random()
 
-                     if p <= self.probability_cross:
-                       couple = (population[i], population[j])  
-                       couples.append(couple)
+                if p <= self.probability_cross:
+                    couple = (population[i], population[j])  
+                    couples.append(couple)
                      
-
         return couples
         
+    def cross(self, parent1, parent2):
+        pos = random.randint(1, self.num_bits)
+
+        len_bits_parent =  len(parent1["bit_string"])
+
+        children1 = parent1["bit_string"][0:pos] + parent2["bit_string"][pos:len_bits_parent]
+        children2 = parent2["bit_string"][0:pos] + parent1["bit_string"][pos:len_bits_parent]
+
+        return children1, children2
     
-             
+    def mutation(self, children):
+        for child in children:
+            if random.random() <= self.individual_mutation:
+                for i in range(len(child)):
+                    if random.random() <= self.mut_gen:
+                        child[i] = 1 - child[i]
+
+    def prune(self, population_generation: list[list[object]]):
+        new_population = []
+        
+        new_population.append(population_generation.pop(0))
+
+        while len(new_population) < self.max_population and len(population_generation) > 0:
+            pos = random.randint(0, len(population_generation) - 1)
+            new_population.append(population_generation.pop(pos))
+
+        return new_population
+        
+
+
 
 
 
